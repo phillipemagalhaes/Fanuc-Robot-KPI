@@ -1,0 +1,462 @@
+PROGRAM kpi_g2
+
+
+%NOLOCKGROUP
+%NOPAUSE = ERROR+COMMAND + TPENABLE
+
+%NOBUSYLAMP 
+
+%NOABORT = ERROR 
+
+
+
+CONST
+
+DELTAWORK = 18000  -- em segundos o equivalente a 5 horas 
+
+VAR
+
+
+hora1				:STRING[30]
+
+teste_error			:INTEGER
+
+file_var4			:FILE
+
+file_var3			:FILE
+
+seq_num 			:INTEGER
+
+error_code			: INTEGER
+
+error_string			:STRING [50]
+
+cause_code			:INTEGER
+
+cause_string			:STRING [50]
+
+time_int1			:INTEGER
+
+severity 			:INTEGER 
+
+prog_nam			:STRING [50]
+
+file_var2			: FILE 
+
+
+IMSTP				:BOOLEAN
+
+ttr_mili			:INTEGER  
+
+flag1				:INTEGER
+	
+jph_sat 			:REAL
+
+
+SAT 				:REAL
+
+spd_jph				:REAL
+
+attr_micro			: REAL
+microerror			: REAL 
+
+tfinal				:STRING[30]
+
+time_str1			:STRING[30]
+
+time_str			:STRING[30]
+
+
+day				:INTEGER
+
+data				:STRING[20]
+
+i		  		: INTEGER
+
+array_day			:ARRAY[35] OF STRING [30]
+array_cycle			:ARRAY[35] OF REAL
+array_cttr			:ARRAY[35] OF REAL
+array_attr			:ARRAY[35] OF REAL
+array_mcbf			:ARRAY[35] OF REAL
+array_mtbf			:ARRAY[35] OF REAL
+array_mttr			:ARRAY[35] OF REAL
+array_ava			:ARRAY[35] OF REAL
+array_error			:ARRAY[35] OF REAL
+array_ciclo			:ARRAY[35] OF REAL
+attr_micro1			:ARRAY[35] OF REAL
+error_micro			:ARRAY[35] OF REAL
+array_jph			:ARRAY[35] OF REAL
+array_sat			:ARRAY[35] OF REAL
+
+error_str			:ARRAY[70] OF STRING [50]
+	
+
+data_teste			:STRING[30]
+data_str			:STRING[30]
+hora				:STRING[30]
+attr				:REAL
+MTTR				:REAL 
+MTBF				:REAL
+MCBF				:REAL 
+cycleerror			:INTEGER 
+cycle_number 			:INTEGER 
+AVAILABILITY 			:REAL 
+
+
+ttr				: REAL
+tbf				: REAL 
+
+value 				:INTEGER
+real_flag 			:BOOLEAN
+
+int_value 			:INTEGER
+ 
+real_value 			:REAL
+ 
+tempo				: INTEGER
+
+value1 				:INTEGER 
+value2				:INTEGER
+
+
+time_int			: INTEGER
+valor				: INTEGER	
+file_var1			: FILE
+
+prog_index 			: INTEGER 
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ROUTINE inicializar -- inicializa as variáveis 
+
+BEGIN 
+
+		IF (UNINIT(attr) = TRUE) THEN 
+			attr = 0 
+		ENDIF 
+		
+		IF (UNINIT(cycleerror)) THEN 
+		cycleerror = 0 
+		ENDIF 
+		
+		IF (UNINIT(cycle_number)) THEN 
+		cycle_number = 0 
+		ENDIF 
+		
+		IF (UNINIT(day)) THEN 
+		day = 0 
+		ENDIF 
+								
+		IF (UNINIT(data_teste)) THEN 
+		data_teste = '3000' 
+		ENDIF 
+		
+		IF (UNINIT(microerror)) THEN 
+		microerror = 0
+		ENDIF 
+		
+		IF (UNINIT(attr_micro)) THEN 
+		attr_micro = 0
+		ENDIF 
+		
+		
+		IF (UNINIT(spd_jph)) THEN 
+		spd_jph = 0
+		ENDIF
+			
+		IF (UNINIT(flag1)) THEN 
+		flag1 = 0
+		ENDIF
+		
+		
+	END inicializar
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+ROUTINE CALCULO_KPIS
+
+BEGIN
+	
+		MTBF = ((DELTAWORK -  attr)/(cycleerror))/(60)
+		
+		MTTR =  (attr/cycleerror)/(60)
+		
+		MCBF =  cycle_number/cycleerror	
+		
+		
+END CALCULO_KPIS	
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ROUTINE LOAD_ARRAYS
+
+BEGIN
+	
+	array_day[day] = data
+	array_cttr[day] = ttr
+	array_attr[day] = attr
+				
+	array_mcbf[day]=MCBF					
+	array_mtbf[day]=MTBF		
+	array_mttr[day]=MTTR
+	array_ava[day]=AVAILABILITY			
+	array_error[day]=cycleerror			
+	array_ciclo[day]=cycle_number
+	array_jph[day] = spd_jph
+	array_sat[day]  = jph_sat
+	
+
+END LOAD_ARRAYS	
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ROUTINE TP_SCREEN
+
+BEGIN 
+	
+	
+	WRITE ('DT       :  ', attr::6::2,' sec',CR)
+
+	WRITE ( 'MTBF     :  ' ,MTBF::6::2,' min', CR )	
+	
+	WRITE ( 'MTTR     :  ' ,MTTR::6::2,' min', CR)
+	WRITE('MCBF     :  ', MCBF::6::2, CR)
+	WRITE('SAA      :   ',AVAILABILITY::6::2,'%',CR)
+	WRITE( 'CTTR     :  ', ttr::6::2,' sec',CR)
+	WRITE('ERRORS   :      ', cycleerror,CR)
+	WRITE('CYCLES   :      ',cycle_number,CR)
+	
+
+END TP_SCREEN
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ROUTINE  WORK_SHEET 
+	
+	BEGIN
+
+ 	OPEN FILE file_var1 ('RW','FR:\REPORT.csv')
+	 
+	 WRITE file_var1('Day' ,',','DownTime',',','MCBF',',','MTBF',',','MTTR',',','SAA',',','Errors',',','Spd_jph',',','SAT',CR) 
+	
+      	 FOR i = 1 TO day DO
+
+	WRITE file_var1(array_day[i],',',array_attr[i]::6::2,',',array_mcbf[i]::6::2,',',array_mtbf[i]::6::2,',',array_mttr[i]::6::2,',',array_ava[i]::6::2,',',array_error[i]::6::2,',',array_jph[i]::6::2,',',array_sat[i]::6::2,CR)
+	
+	--WRITE file_var1(array_ciclo[cycle_number],CR)
+	
+      	 ENDFOR
+	CLOSE FILE file_var1
+		
+	END WORK_SHEET
+	
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------	
+ROUTINE  ERROR_REPORT
+	
+	BEGIN
+
+	 	OPEN FILE file_var2 ('AP','MC:\ERROREPORT.csv')
+ 		 
+			 WRITE file_var2('DESCRIPTION',',','PROG_NAME',',','TIME',CR) 
+	 
+			 ERR_DATA(MAXINT, error_code, error_string, cause_code, cause_string, time_int1,severity, prog_nam)			
+						
+			WRITE  file_var2( error_string,CR)
+	
+		CLOSE FILE file_var2
+	
+	END ERROR_REPORT
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ROUTINE RESET_RKPIS
+
+	BEGIN
+		
+              cycle_number = 0 
+	      cycleerror = 0 
+              ttr = 0
+	      attr = 0 
+              MCBF = 0
+              MTBF = 0
+              MTTR = 0 
+              AVAILABILITY = 0
+              microerror = 0
+              attr_micro = 0
+              
+	END RESET_RKPIS
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ROUTINE  WEB_KPIS
+	
+	BEGIN
+
+ 	OPEN FILE file_var3 ('RW','FR:\kpis.htm')
+ 	
+ 	 WRITE  file_var3('<center>  /***************************************************************************/ </center>  ','<br />' )
+	 
+	 WRITE  file_var3( '<h1>  <center> GENERAL MOTORS CORP. </center> </h1> ','<br />','<br />' )
+	 
+	  WRITE  file_var3(' <center>  /***************************************************************************/   </center> ','<br />' )
+	 
+ 	
+ 	WRITE  file_var3('<h2> <center>  ROBOTS KPIS  ',' </center> </h2>  <br />'  )
+ 	
+
+	WRITE file_var3(  ' <center> <b> CTTR (sec)   :    </b>  ', ttr::6::2,' </center> <br />')
+	WRITE  file_var3(' <center> <b>  DT   (sec)  :  </b>     ', attr::6::2,' </center> <br />')
+
+	WRITE  file_var3( ' <center>  <b> MTBF (min)  :  </b>    ' ,MTBF::6::2, ' </center> <br />' )
+	
+	
+	WRITE  file_var3 ( ' <center> <b> MTTR (min)   :   </b>    ' ,MTTR::6::2, ' </center> <br />' )
+	WRITE  file_var3('<center>  <b>   MCBF     :    </b>     ', MCBF::6::2, '  </center>  <br />')
+	WRITE  file_var3(' <center>  <b>  SAA      :   </b>     ',AVAILABILITY::6::2,'%','  </center>  <br />' )
+	WRITE  file_var3('<center>   <b> ERRORS   :    </b>       ', cycleerror,'<br />' )
+	WRITE  file_var3('<center> <b>  CYCLES   :    </b>       ',cycle_number,' </center>  <br />' )
+	
+	
+	CLOSE FILE file_var3
+		
+	END WEB_KPIS
+	
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+ROUTINE FLAG_SIGNAL
+
+BEGIN 
+		teste_error = 0
+		 
+		ttr_mili = 0
+		
+		WAIT FOR ( NOT DOUT[9] )
+					
+		WHILE ( (  NOT DOUT[9]  ) ) DO 
+				
+					
+				IF (  ( DIN[1] ) AND  ( DOUT[6] ) ) THEN 
+												
+					CONNECT TIMER TO ttr_mili 
+					
+					IF (teste_error = 0) THEN 
+						
+						teste_error = 1					
+					
+						OPEN FILE file_var4 ('AP','FR:\erros.csv')
+					
+						 ERR_DATA(MAXINT, error_code, error_string, cause_code, cause_string, time_int1,severity, prog_nam)
+	
+						WRITE  file_var4( error_string ,',')
+
+						CLOSE FILE file_var4
+					
+					ENDIF	
+				
+			IF ( ( NOT DOUT[6] ) AND  ( NOT DOUT[8] ) AND ( NOT DOUT [55] )  AND ( NOT DOUT [48] )   ) THEN 
+				
+				DISCONNECT TIMER ttr_mili
+				
+			ENDIF
+			
+		DELAY 100
+		
+		ENDWHILE 
+			
+		ttr = ( ttr_mili/1000)
+		
+		IF (ttr > 0 ) THEN 
+			
+			GET_TIME(tempo) -- VALOR INTEGER DO TEMPO
+		
+			CNV_TIME_STR(tempo,time_str) -- VALOR DO TEMPO COMO STRING
+	
+			hora1 = SUB_STR(time_str, 11,5) -- Valor da hora no formato HH:MM	
+   		
+			OPEN FILE file_var4 ('AP','FR:\erros.csv')
+		
+			WRITE  file_var4( ttr::6::2,',', hora1,CR)
+		
+			CLOSE FILE file_var4
+		
+		ENDIF
+				
+END FLAG_SIGNAL
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- BEGINNING  OF THE MAIN PROGRAM
+
+BEGIN
+	
+	inicializar -- inicia as variáveis
+		
+	
+	tfinal = '14:30' -- TEMPO FINAL DA JORNADA DE TRABALHO
+
+	GET_TIME(tempo) -- VALOR INTEGER DO TEMPO
+	
+	CNV_TIME_STR(tempo,time_str) -- VALOR DO TEMPO COMO STRING
+	
+	data = SUB_STR(time_str, 1,2) -- Valor do dia no formato DD
+   	
+   	hora = SUB_STR(time_str, 11,5) -- Valor da hora no formato HH:MM
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+	IF( (hora > '06:00') AND (hora < tfinal)) THEN 
+		
+
+	FLAG_SIGNAL				
+				
+   	cycle_number = cycle_number + 1    --NUMERO DO CICLO
+
+		IF  (ttr >0 ) THEN  	
+			
+			cycleerror = cycleerror  + 1  -- NUMERO DE FALHAS 
+	                attr = (attr + ttr)                   -- TEMPO ACUMULADO DE FALHAS
+		
+		ENDIF
+		
+		IF (cycleerror = 0) THEN 
+			MTBF = 0
+			MTTR = 0
+			attr = 0
+			MCBF = 0
+		ELSE
+	
+		CALCULO_KPIS -- CALCULO DE MTBF, MTTR, MCBF
+		
+		ENDIF
+		 
+		 IF (MTBF = 0) THEN 
+		 	
+		 	AVAILABILITY = 100
+		 	
+		 ELSE
+		AVAILABILITY = 100* (MTBF)/(MTBF + MTTR)
+		 ENDIF
+	
+	TP_SCREEN -- CARREGA A TELA NA TELA USER1 OS VALORES CALCULADOS
+	
+	WEB_KPIS  -- CARREGA A TELA NO ARQUIVO HTM 
+	
+	ENDIF 	
+	------------------------------------------------------------------------------------------------------------------------------------------------------------------
+		
+	IF( (hora> tfinal) AND (data_teste <> data) ) THEN
+				
+	jph_sat = (cycle_number/7) -- DIVIDIDO POR 7 HORAS DE JORNADA DE TRABALHO 
+	
+	spd_jph =( (1/AVAILABILITY)*jph_sat)*100 -- multiplicado por 100 para tirar a porcentagem
+		
+	data_teste = data	
+		
+	day= day+1
+	
+	IF (day > 30) THEN 
+		
+		day = 1 
+		
+	ENDIF 
+	
+	LOAD_ARRAYS -- CARREGA O VALOR DOS KPI'S EM UM ARRAY
+	
+	WORK_SHEET -- CRIA O ARQUIVO EM EXCEL E ESCREVE OS VALORES NA PLANILHA
+	
+	RESET_RKPIS -- RESETA OS VALORES DAS VARIAVEIS APÓS O FIM DA JORNADA DE TRABALHO
+	
+	ENDIF
+	
+	END kpi_g2
